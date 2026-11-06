@@ -73,4 +73,8 @@ curl: (7) Failed to connect to example.com port 443 after 2 ms: Couldn't connect
 
 ## CI Verification
 
-A [GitHub Actions workflow](.github/workflows/test.yml) runs `bazel test //...` on every push and pull request using [setup-bazel](https://github.com/bazel-contrib/setup-bazel), which installs Bazelisk to pick up the latest Bazel release.
+A [GitHub Actions workflow](.github/workflows/test.yml) runs the commands from the [Usage](#usage) section on every push and pull request using [setup-bazel](https://github.com/bazel-contrib/setup-bazel), which installs Bazelisk to pick up the latest Bazel release. It verifies the outcome of each command:
+
+1. **Run the test** checks that the test passes.
+2. **Run the test again without a cached result** checks that the test executes again instead of being reported as cached.
+3. **Run the test without the requires-network tag** removes the tag and checks that the test fails with exit code 3 because `curl` cannot connect.

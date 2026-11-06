@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,5 +19,34 @@ jobs:
         with:
           bazelisk-cache: true
           repository-cache: true
-      - name: Run tests
-        run: bazel test //...
+      - name: Run the test
+        run: |
+          bazelisk test //test:external_http_test 2>&1 | tee output.txt
+          grep -E "//test:external_http_test +PASSED" output.txt
+      - name: Run the test again without a cached result
+        run: |
+          bazelisk test //test:external_http_test 2>&1 | tee output.txt
+          grep -E "//test:external_http_test +PASSED" output.txt
+          grep "Executed 1 out of 1 test" output.txt
+          if grep -q "(cached)" output.txt; then
+            echo "Expected the test to execute instead of returning a cached result" >&2
+            exit 1
+          fi
+      - name: Run the test without the requires-network tag
+        run: |
+          sed -i '/"requires-network",/d' test/BUILD.bazel
+          if grep -q "requires-network" test/BUILD.bazel; then
+            echo "Failed to remove the requires-network tag" >&2
+            exit 1
+          fi
+          set +e
+          bazelisk test //test:external_http_test > output.txt 2>&1
+          exit_code=$?
+          set -e
+          cat output.txt
+          if [ "$exit_code" -ne 3 ]; then
+            echo "Expected exit code 3 for a failing test, got $exit_code" >&2
+            exit 1
+          fi
+          grep -E "curl: \((6|7)\)" output.txt
+          grep -E "//test:external_http_test +FAILED" output.txt
