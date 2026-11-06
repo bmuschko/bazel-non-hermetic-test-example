@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      # Allows Bazel to use linux-sandbox, which isolates the network, instead of processwrapper-sandbox.
+      # Allows Bazel to use linux-sandbox, which isolates the network.
       - name: Enable unprivileged user namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - uses: bazel-contrib/setup-bazel@0.19.1
@@ -24,11 +24,11 @@ jobs:
           repository-cache: true
       - name: Run the test
         run: |
-          bazelisk test //test:external_http_test 2>&1 | tee output.txt
+          bazelisk test --spawn_strategy=linux-sandbox //test:external_http_test 2>&1 | tee output.txt
           grep -E "//test:external_http_test +PASSED" output.txt
       - name: Run the test again without a cached result
         run: |
-          bazelisk test //test:external_http_test 2>&1 | tee output.txt
+          bazelisk test --spawn_strategy=linux-sandbox //test:external_http_test 2>&1 | tee output.txt
           grep -E "//test:external_http_test +PASSED" output.txt
           grep "Executed 1 out of 1 test" output.txt
           if grep -q "(cached)" output.txt; then
@@ -43,7 +43,7 @@ jobs:
             exit 1
           fi
           set +e
-          bazelisk test //test:external_http_test > output.txt 2>&1
+          bazelisk test --spawn_strategy=linux-sandbox //test:external_http_test > output.txt 2>&1
           exit_code=$?
           set -e
           cat output.txt

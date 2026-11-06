@@ -81,4 +81,8 @@ A [GitHub Actions workflow](.github/workflows/test.yml) runs the commands from t
 2. **Run the test again without a cached result** checks that the test executes again instead of being reported as cached.
 3. **Run the test without the requires-network tag** removes the tag and checks that the test fails with exit code 3 because `curl` cannot connect.
 
-The workflow enables unprivileged user namespaces on the runner first. Without them, Bazel silently falls back to `processwrapper-sandbox`, which does not isolate the network, and the test would pass even without the `requires-network` tag.
+The workflow runs each command with `--spawn_strategy=linux-sandbox`, which forces Bazel to use the Linux sandbox that isolates the network. Without the flag, Bazel silently falls back to `processwrapper-sandbox` when the Linux sandbox is unavailable, and the test would pass even without the `requires-network` tag. The Linux sandbox relies on unprivileged user namespaces, so the workflow enables them on the runner first:
+
+```sh
+sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+```
