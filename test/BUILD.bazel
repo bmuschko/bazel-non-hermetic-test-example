@@ -6,6 +6,6 @@ sh_test(
     srcs = ["external_http_test.sh"],
     tags = [
         "external",
-        "no-sandbox",
+        "requires-network",
     ],
 )

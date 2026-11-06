@@ -1,6 +1,6 @@
 # Bazel Non-Hermetic Test Example
 
-This project demonstrates how to run a Bazel test that reaches out to an external system by opting out of the [sandbox](https://bazel.build/docs/sandboxing) with [tags](https://bazel.build/reference/be/common-definitions#common.tags).
+This project demonstrates how to run a Bazel test that reaches out to an external system by granting it network access inside the [sandbox](https://bazel.build/docs/sandboxing) with [tags](https://bazel.build/reference/be/common-definitions#common.tags).
 
 ## Problem
 
@@ -13,9 +13,9 @@ The test target is annotated with two tags:
 | Tag | Effect |
 |-----|--------|
 | `external` | Marks the test as depending on an external system, so its result is never cached and it runs on every invocation. |
-| `no-sandbox` | Runs the test outside of the sandbox, giving it unrestricted access to the network. |
+| `requires-network` | Allows the test to access the network while keeping all other sandbox restrictions in place. |
 
-The [`.bazelrc`](.bazelrc) sets `--sandbox_default_allow_network=false` to block network access for all sandboxed actions. Only targets that opt out of the sandbox can reach external systems.
+The [`.bazelrc`](.bazelrc) sets `--sandbox_default_allow_network=false` to block network access for all sandboxed actions. Only targets tagged with `requires-network` can reach external systems.
 
 ```starlark
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
@@ -26,12 +26,12 @@ sh_test(
     srcs = ["external_http_test.sh"],
     tags = [
         "external",
-        "no-sandbox",
+        "requires-network",
     ],
 )
 ```
 
-If the test should stay sandboxed but still be allowed network access, use the `requires-network` tag instead of `no-sandbox`.
+If the test needs to bypass the sandbox entirely, for example to access undeclared files on the host, use the `no-sandbox` tag instead of `requires-network`.
 
 ## Project Structure
 
@@ -40,7 +40,7 @@ If the test should stay sandboxed but still be allowed network access, use the `
 ├── .bazelversion               # Uses the latest Bazel release via Bazelisk
 ├── MODULE.bazel                # Bzlmod config: rules_shell
 └── test/
-    ├── BUILD.bazel             # sh_test with "external" and "no-sandbox" tags
+    ├── BUILD.bazel             # sh_test with "external" and "requires-network" tags
     └── external_http_test.sh   # Calls https://example.com with curl
 ```
 
@@ -64,7 +64,7 @@ bazelisk test //test:external_http_test
 Executed 1 out of 1 test: 1 test passes.
 ```
 
-Remove the `no-sandbox` tag from `test/BUILD.bazel` and run the test again. It fails because the sandbox blocks network access:
+Remove the `requires-network` tag from `test/BUILD.bazel` and run the test again. It fails because the sandbox blocks network access:
 
 ```
 curl: (7) Failed to connect to example.com port 443 after 2 ms: Couldn't connect to server
