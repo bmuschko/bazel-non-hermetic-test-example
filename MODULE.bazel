@@ -1,0 +1,3 @@
+module(name = "bazel_non_hermetic_test")
+
+bazel_dep(name = "rules_shell", version = "0.8.0")
